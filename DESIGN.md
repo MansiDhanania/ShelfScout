@@ -106,13 +106,13 @@ Redis stores all per-session state as a hash under `session:{session_id}`. This 
 | `segments` | Stepwise navigation segments from RTAB-Map |
 
 ### Why separate navigation state from reaching state?
-Cross-aisle navigation (SLAM-based) and fine-grained reaching (ARKit-based) operate on fundamentally different data and timescales. Navigation state is persistent across multiple turns and updates incrementally as the user moves. Reaching state is frame-specific and gives hand-level guidance to..... Storing them under separate Redis keys with separate retrieval nodes means neither path ever loads data it doesn't need.
+Cross-aisle navigation (SLAM-based) and fine-grained reaching (ARKit-based) operate on fundamentally different data and timescales. Navigation state is persistent across multiple turns and updates incrementally as the user moves. Reaching state is frame-specific and gives hand-level guidance to assist the user in grasping the object. Storing them under separate Redis keys with separate retrieval nodes means neither path ever loads data it doesn't need.
 
 ---
 
 ## Qwen Vision Pipeline: Three Deployment Targets
 
-Object detection uses **Qwen2.5-VL** (open-vocabulary vision-language model) deployed across three targets, selected at runtime:
+Object detection uses **Qwen3-VL** (open-vocabulary vision-language model) deployed across three targets, selected at runtime:
 
 | Target | URL | When used |
 |--------|-----|-----------|
@@ -120,13 +120,13 @@ Object detection uses **Qwen2.5-VL** (open-vocabulary vision-language model) dep
 | Pegasus (lab server) | `ollama.pegasus.cim.mcgill.ca` | Secondary GPU fallback |
 | Fireworks API | `api.fireworks.ai` | Cloud fallback when both local servers unavailable |
 
-For Fireworks, images must be preprocessed to match Qwen's `smart_resize` logic (the `/qwen-preprocessing` endpoint handles this), and returned bounding boxes are rescaled back to original image coordinates via stored scale factors.
+Images must be preprocessed to match Qwen's `smart_resize` logic (the `/qwen-preprocessing` endpoint handles this), and returned bounding boxes are rescaled back to original image coordinates via stored scale factors.
 
 Gemini is available as a final fallback on every detection path if all Qwen targets fail.
 
 ### Why Qwen over OmDet/YOLO?
 The original architecture used OmDet for object detection. OmDet was replaced with Qwen3-VL for two reasons:
-
+..........
 1. **Open-vocabulary detection**: OmDet, like YOLO-based detectors, operates on a fixed set of trained object classes. A user might ask for "the Heinz ketchup" or "the gluten-free bread" — arbitrary natural language object names that a fixed-class detector cannot handle. Qwen3-VL takes the object name directly as a text prompt and detects it regardless of whether it appeared in training data.
 
 2. **Integrated reasoning**: Qwen can simultaneously detect, localise, and describe an object — reducing the number of model calls needed for a single user query.
