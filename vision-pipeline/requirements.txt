@@ -1,0 +1,29 @@
+# Vision Pipeline Dependencies
+# Universal dependencies that work on both CPU and GPU
+# PyTorch itself is provided by the base Docker image (pytorch/pytorch or similar)
+
+# Web Framework & API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP & System
+requests>=2.31.0
+psutil>=5.9.0
+
+# Image Processing
+pillow>=10.0.0
+opencv-python-headless>=4.8.0
+
+# Array & Numerical Computing
+numpy>=1.24.0
+
+# ML Models & Inference
+transformers>=4.35.0
+timm>=0.9.0
+accelerate>=0.24.0
+
+# Data Validation
+pydantic>=2.0.0
+
+# Optional but recommended for Ollama integration
+bitsandbytes>=0.41.0
