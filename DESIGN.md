@@ -125,11 +125,11 @@ Images must be preprocessed to match Qwen's `smart_resize` logic (the `/qwen-pre
 Gemini is available as a final fallback on every detection path if all Qwen targets fail.
 
 ### Why Qwen over OmDet/YOLO?
-The original architecture used OmDet for object detection. OmDet was replaced with Qwen3-VL for two reasons:
+The original architecture used Yolov11 for object detection, which operates on a fixed set of trained object classes. A user might ask for "the Heinz ketchup" or "the gluten-free bread", arbitrary natural language object names that a fixed-class detector cannot handle. It was hence replaced by OmDet for open-vocabulary object detection. However, OmDet had two specific drawbacks, leading to its replacement by Qwen3-VL:
 ..........
-1. **Open-vocabulary detection**: OmDet, like YOLO-based detectors, operates on a fixed set of trained object classes. A user might ask for "the Heinz ketchup" or "the gluten-free bread" — arbitrary natural language object names that a fixed-class detector cannot handle. Qwen3-VL takes the object name directly as a text prompt and detects it regardless of whether it appeared in training data.
+1. **Detection Confidence Scores**: OmDet, being trained for open-vocabulary object detection, demonstrated very low detection confidence scores, making it difficult to set detection thresholds and filter false positive detections. Qwen3-VL, on the other hand, can take any object name directly as a text prompt and detect it with high confidence scores for true positive detections.
 
-2. **Integrated reasoning**: Qwen can simultaneously detect, localise, and describe an object — reducing the number of model calls needed for a single user query.
+2. **Integrated reasoning**: Qwen can simultaneously detect, localise and describe an object, reducing the number of model calls needed for a single user query.
 
 The tradeoff is reliability: LMM outputs are less structured than traditional detector outputs, which is why the multi-strategy JSON repair pipeline in `vision_app.py` exists.
 
@@ -144,9 +144,9 @@ The current model choices emerged from systematic evaluation over the course of 
 |-------|---------|--------|
 | YOLOv11 + DPT | Replaced | Fixed object classes — cannot handle arbitrary user queries |
 | OmDet | Replaced | Same limitation as YOLO; open-vocabulary but weaker than LMM |
-| SAMURAI / SAM2 | Rejected | Designed for video tracking, not real-time single-frame detection; 1hr43min on CPU for 9s clip |
+| SAMURAI / SAM2 | Rejected | Designed for object tracking, but not real-time detection; 1hr43min on CPU for 9s clip |
 | BLIP-2 | Rejected | Image captioning only, no spatial grounding |
-| **Qwen2.5-VL** | **Adopted** | Open-vocabulary, spatially grounded, integrated with depth estimation |
+| **Qwen3-VL** | **Adopted** | Open-vocabulary, spatially grounded, integrated with depth estimation |
 
 ### OCR (for product label reading)
 | Model | Outcome | Reason |
@@ -154,11 +154,11 @@ The current model choices emerged from systematic evaluation over the course of 
 | Tesseract 5.5 | Rejected | Poor performance on real-world grocery packaging |
 | EasyOCR | Rejected | Better but still unreliable on skewed/printed labels |
 | EAST + EasyOCR | Rejected | Improved detection regions but still brittle |
-| Google Vision AI | Not deployed | API key constraints; tested only |
+| Google Vision AI | Not deployed | Good OCR but deemed unnecessary for this project since an LLM can perform OCR to the same degree; tested only |
 | Azure OCR / Read | Not deployed | Preferred Read over Vision (better text ordering) but not integrated |
 | LLaMA-3.2-90B Vision (Groq) | Adopted via VLM path | Prompt-sensitive OCR via natural language — more robust than dedicated OCR |
 
-### Scene Understanding / LMM
+### LMMs
 | Model | Outcome | Reason |
 |-------|---------|--------|
 | LLaMA-3.2-90B | Early prototype | Replaced by faster, more capable models |
@@ -171,8 +171,7 @@ The current model choices emerged from systematic evaluation over the course of 
 ### Depth Estimation
 | Model | Outcome | Reason |
 |-------|---------|--------|
-| DPT (Dense Prediction Transformer) | Replaced | Used with YOLO; replaced when switching to Qwen |
-| **Depth-Anything-V2-Small** | **Adopted** | ~100MB, fast, accurate enough for spatial guidance; integrates directly with Qwen pipeline |
+| **Depth-Anything-V2-Small** based on DPT (Dense Prediction Transformer) | **Adopted** | ~100MB, fast, accurate enough for spatial guidance; integrates directly with Qwen pipeline |
 
 ### Navigation
 | Model/System | Outcome | Reason |
@@ -199,7 +198,7 @@ These profiles are applied at the synthesis stage, not by modifying individual m
 
 ### Docker Network
 All services run as Docker containers on a centralised network:
-- `vision-pipeline` — Qwen2.5-VL + Depth-Anything-V2 (FastAPI, port 5000)
+- `vision-pipeline` — Qwen3-VL + Depth-Anything-V2 (FastAPI, port 5000)
 - `n8n` — workflow engine
 - `redis` — session state
 - `rtabmap-api` — SLAM navigation (port 8000)
@@ -208,10 +207,10 @@ All services run as Docker containers on a centralised network:
 - `faster-whisper` — local speech-to-text
 
 ### Traefik
-Traefik acts as the reverse proxy and TLS termination layer, routing external HTTPS traffic to internal services. This allows the system to be accessible at `https://cybersight.cim.mcgill.ca` from any device (web, mobile, smart glasses) without exposing internal ports.
+Traefik acts as the reverse proxy and TLS termination layer, routing external HTTPS traffic to internal services. This allows the system to be accessible at `https://cybersight.cim.mcgill.ca` from any device without exposing internal ports.
 
 ### MCP Servers
-SearXNG (self-hosted search) and Crawl4AI are deployed as MCP servers on the same Docker network, available for future agent-based extensions requiring web retrieval.
+SearXNG (self-hosted search) and Crawl4AI are deployed as MCP servers on the same Docker network, available for future agent-based extensions requiring retrieval.
 
 ---
 
@@ -226,7 +225,7 @@ ShelfScout was benchmarked against three commercial systems across four real gro
 | Gemini Live | 0.004/word | Poor |
 | **ShelfScout** | **0.007/word** | **Consistent** |
 
-ShelfScout matched the lowest hallucination rates while being the only system to consistently produce spatially grounded, step-wise guidance instructions. Findings submitted to ACM 2026.
+ShelfScout matched the lowest hallucination rates while being the only system to consistently produce spatially grounded, step-wise guidance instructions.
 
 ---
 
