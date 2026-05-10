@@ -112,7 +112,7 @@ Cross-aisle navigation (SLAM-based) and fine-grained reaching (ARKit-based) oper
 
 ## Qwen Vision Pipeline: Three Deployment Targets
 
-Object detection uses **Qwen3-VL** (open-vocabulary vision-language model) deployed across three targets, selected at runtime:
+Object detection uses **Qwen2.5-VL** (open-vocabulary vision-language model) deployed across three targets, selected at runtime:
 
 | Target | URL | When used |
 |--------|-----|-----------|
@@ -125,9 +125,9 @@ Images must be preprocessed to match Qwen's `smart_resize` logic (the `/qwen-pre
 Gemini is available as a final fallback on every detection path if all Qwen targets fail.
 
 ### Why Qwen over OmDet/YOLO?
-The original architecture used Yolov11 for object detection, which operates on a fixed set of trained object classes. A user might ask for "the Heinz ketchup" or "the gluten-free bread", arbitrary natural language object names that a fixed-class detector cannot handle. It was hence replaced by OmDet for open-vocabulary object detection. However, OmDet had two specific drawbacks, leading to its replacement by Qwen3-VL:
+The original architecture used Yolov11 for object detection, which operates on a fixed set of trained object classes. A user might ask for "the Heinz ketchup" or "the gluten-free bread", arbitrary natural language object names that a fixed-class detector cannot handle. It was hence replaced by OmDet for open-vocabulary object detection. However, OmDet had two specific drawbacks, leading to its replacement by Qwen2.5-VL:
 ..........
-1. **Detection Confidence Scores**: OmDet, being trained for open-vocabulary object detection, demonstrated very low detection confidence scores, making it difficult to set detection thresholds and filter false positive detections. Qwen3-VL, on the other hand, can take any object name directly as a text prompt and detect it with high confidence scores for true positive detections.
+1. **Detection Confidence Scores**: OmDet, being trained for open-vocabulary object detection, demonstrated very low detection confidence scores, making it difficult to set detection thresholds and filter false positive detections. Qwen2.5-VL, on the other hand, can take any object name directly as a text prompt and detect it with high confidence scores for true positive detections.
 
 2. **Integrated reasoning**: Qwen can simultaneously detect, localise and describe an object, reducing the number of model calls needed for a single user query.
 
@@ -146,7 +146,7 @@ The current model choices emerged from systematic evaluation over the course of 
 | OmDet | Replaced | Same limitation as YOLO; open-vocabulary but weaker than LMM |
 | SAMURAI / SAM2 | Rejected | Designed for object tracking, but not real-time detection; 1hr43min on CPU for 9s clip |
 | BLIP-2 | Rejected | Image captioning only, no spatial grounding |
-| **Qwen3-VL** | **Adopted** | Open-vocabulary, spatially grounded, integrated with depth estimation |
+| **Qwen2.5-VL** | **Adopted** | Open-vocabulary, spatially grounded, integrated with depth estimation |
 
 ### OCR (for product label reading)
 | Model | Outcome | Reason |
@@ -198,7 +198,7 @@ These profiles are applied at the synthesis stage, not by modifying individual m
 
 ### Docker Network
 All services run as Docker containers on a centralised network:
-- `vision-pipeline` — Qwen3-VL + Depth-Anything-V2 (FastAPI, port 5000)
+- `vision-pipeline` — Qwen2.5-VL + Depth-Anything-V2 (FastAPI, port 5000)
 - `n8n` — workflow engine
 - `redis` — session state
 - `rtabmap-api` — SLAM navigation (port 8000)
