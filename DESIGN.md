@@ -106,7 +106,7 @@ Redis stores all per-session state as a hash under `session:{session_id}`. This 
 | `segments` | Stepwise navigation segments from RTAB-Map |
 
 ### Why separate navigation state from reaching state?
-Cross-aisle navigation (SLAM-based) and fine-grained reaching (ARKit-based) operate on fundamentally different data and timescales. Navigation state is persistent across multiple turns and updates incrementally as the user moves. Reaching state is frame-specific and resets on each query. Storing them under separate Redis keys with separate retrieval nodes means neither path ever loads data it doesn't need.
+Cross-aisle navigation (SLAM-based) and fine-grained reaching (ARKit-based) operate on fundamentally different data and timescales. Navigation state is persistent across multiple turns and updates incrementally as the user moves. Reaching state is frame-specific and gives hand-level guidance to..... Storing them under separate Redis keys with separate retrieval nodes means neither path ever loads data it doesn't need.
 
 ---
 
