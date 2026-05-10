@@ -6,7 +6,7 @@ This document describes the backend architecture of ShelfScout and the reasoning
 
 ## What ShelfScout Does
 
-ShelfScout is a real-time AI assistant that helps blind and visually impaired (BVI) users navigate grocery stores independently. A user speaks a query ("where are the apples?"), the system captures an image from their device, and responds with spatially grounded audio guidance within seconds.
+ShelfScout is a real-time AI assistant that helps blind and visually impaired (BVI) users navigate complex environments such as grocery stores, independently. A user speaks a query ("where are the apples?"), the system captures an image from their device, and responds with spatially grounded audio guidance within seconds.
 
 The system is frontend-agnostic by design: the same backend serves a web app, an iOS/Android mobile app, and (in future) smart glasses — without any backend changes. All intelligence lives server-side.
 
@@ -57,7 +57,7 @@ The transcript is passed to **GPT-OSS-120B** (via Groq) with a structured output
 Intent is classified into one of: `scene`, `object`, `guidance`, `validation`, `chat`. The reasoning and extracted object name are written back to Redis immediately.
 
 ### Stage 3 — Presence Check (for object/guidance intents)
-Before running expensive vision inference, the system checks whether the target object is visible in the current frame. A lightweight LMM call (LLaMA-4-Scout-17B via Groq) with a strict JSON schema (`{"evidence": "...", "visible": true/false}`) determines this. If the object is not present, the system routes to a "no object found" path with a natural language fallback — avoiding unnecessary Qwen inference.
+Before running expensive vision inference, the system checks whether the target object is visible in the current frame. A lightweight LMM call (LLaMA-4-Scout-17B via Groq) with a strict JSON schema (`{"evidence": "...", "visible": true/false}`) determines this. If the object is not present, the system routes to a "no object found" path with either a RTAB-Map based cross-aisle navigation guidance (for guidance intents, if the object is present in the mapped environment) or a natural language fallback (for object description intents), avoiding unnecessary Qwen inference.
 
 ### Stage 4 — Intent Routing
 A conditional router reads `presence` and `intent` from Redis and branches into one of the following paths:
@@ -65,10 +65,9 @@ A conditional router reads `presence` and `intent` from Redis and branches into 
 | Intent | Path |
 |--------|------|
 | `scene` | Groq Scene Description → Redis → Synthesize |
-| `object` (present) | Qwen Detection → Groq Guidance → Redis → Synthesize |
-| `guidance` (SLAM active) | RTAB-Map API → Groq Turn-Priority Guidance → Synthesize |
-| `guidance` (no SLAM) | Qwen Detection → Groq Guidance → Synthesize |
-| `reaching` (ARKit flag) | Qwen Detection → Reaching Microservice → Synthesize |
+| `object` | Qwen Detection → Groq Guidance → Redis → Synthesize |
+| `guidance` but `object` NOT present (SLAM active) | RTAB-Map API → Groq Turn-Priority Guidance → Synthesize |
+| `guidance` when `object` IS present | Qwen Object Detection → Groq High-level Guidance + Hand-level Reaching Microservice → Synthesize |
 | `validation` | Groq Validation LMM → Synthesize |
 | `chat` | Groq Chat LMM → Synthesize |
 
